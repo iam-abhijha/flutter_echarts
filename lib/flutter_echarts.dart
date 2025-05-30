@@ -94,15 +94,25 @@ class _EchartsState extends State<Echarts> {
   }
 
   void init() async {
-    final extensionsStr = this.widget.extensions.length > 0 ? this.widget.extensions.reduce((value, element) => value + '\n' + element) : '';
+    final extensionsStr = this.widget.extensions.length > 0
+        ? this.widget.extensions.reduce((value, element) => value + '\n' + element)
+        : '';
     final themeStr = this.widget.theme != null ? '\'${this.widget.theme}\'' : 'null';
+
+    // First initialize the chart
     await _controller?.runJavaScript('''
       $echartsScript
       $extensionsStr
       var chart = echarts.init(document.getElementById('chart'), $themeStr);
-      ${this.widget.extraScript}
       chart.setOption($_currentOption, true);
     ''');
+
+    // Then add the event handlers in a separate call
+    await _controller?.runJavaScript('''
+      // Make sure we don't have circular references
+      ${this.widget.extraScript}
+    ''');
+
     if (widget.onLoad != null) {
       widget.onLoad!(_controller!);
     }
@@ -159,8 +169,6 @@ class _EchartsState extends State<Echarts> {
 
   @override
   Widget build(BuildContext context) {
-    return WebViewWidget(
-        controller: _controller!,
-        gestureRecognizers: getGestureRecognizers());
+    return WebViewWidget(controller: _controller!, gestureRecognizers: getGestureRecognizers());
   }
 }
